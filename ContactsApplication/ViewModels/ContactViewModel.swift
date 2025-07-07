@@ -60,14 +60,20 @@ final class ContactViewModel {
     }
 
     private func reloadSections() {
-        let allContacts = fetchContacts()
-        let grouped = Dictionary(grouping: allContacts) { contact in
-            String(contact.name.first ?? "#").uppercased()
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            guard let self = self else { return }
+            let allContacts = self.fetchContacts()
+            let grouped = Dictionary(grouping: allContacts) { contact in
+                String(contact.name.first ?? "#").uppercased()
+            }
+            let sections = grouped
+                .map { Section(letter: $0.key, contacts: $0.value) }
+                .sorted { $0.letter < $1.letter }
+            
+            DispatchQueue.main.async {
+                self.onUpdate?(sections)
+            }
         }
-        let sections = grouped
-            .map { Section(letter: $0.key, contacts: $0.value) }
-            .sorted { $0.letter < $1.letter }
-        onUpdate?(sections)
     }
 
     private func fetchContacts() -> [Contact] {
